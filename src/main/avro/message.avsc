@@ -1,0 +1,45 @@
+[
+  {
+    "namespace": "medley.simulator",
+    "name": "Id",
+    "type": "record",
+    "fields":
+    [
+      {"name": "hostname", "type": "string", "default": "192.0.0.1"},
+      {"name": "port", "type": "int", "default": "6666"},
+      {"name": "ts", "type": "long"} // creation time
+    ]
+  },
+  {
+    "namespace": "medley.simulator",
+    "name": "Entry",
+    "type": "record",
+    "fields":
+    [
+      {"name": "id", "type": "Id"},
+      {"name": "incarnation", "type": "int"},
+      {"name": "status", "type": {"type": "enum", "name": "Status", "symbols": ["ACTIVE", "SUSPECTED", "FAILED", "JOIN", "INDIRECT"]}}
+    ]
+  },
+  {
+    "namespace": "medley.simulator",
+    "type": "record",
+    "name": "Message",
+    "fields":
+    [
+      {"name": "type", "type": {"type": "enum", "name": "Type", "symbols": ["PING", "JOIN", "JOIN_ACK", "ACK", "IND_PING", "IND_PING_ACK", "TERMINATE", "CRASH", "UNLUCKY", "REPORT_ALIVE"]}},
+      // sender id
+      {"name": "sender_id", "type": ["null", "Id"], "default": null},
+      // sender incarnation
+      {"name": "sender_incarnation", "type": "int"},
+      // initiator id
+      {"name": "initiator_id", "type": ["null", "Id"], "default": null},
+      // target id: only for IND_PING
+      {"name": "target_id", "type": ["null", "Id"], "default": null},
+      // creator id: the node who created the Message
+      {"name": "creator_id", "type": ["null", "Id"], "default": null},
+      // table
+      {"name": "table", "type": ["null", {"type": "array", "items": "Entry"}], "default": null}
+    ]
+  }
+]
