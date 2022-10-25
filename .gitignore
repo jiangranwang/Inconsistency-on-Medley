@@ -30,3 +30,4 @@ hs_err_pid*
 .oracle_jre_usage/
 target/
 __pycache__
+analyze/inconsistency/
