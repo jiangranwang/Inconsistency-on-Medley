@@ -23,6 +23,7 @@ public class EventService {
   private final ConcurrentHashMap<Id, Pair<Integer, Status>> membershipTable;
   private final Cache<Id, Pair<Integer, Status>> changeTable;
   private final ConcurrentHashMap<Id, Long> suspectTable;
+  private final ConcurrentHashMap<Id, Integer> suspectCounts;
   private final BlockingQueue<Id> receivedIds;
   private static volatile boolean stopFlag = false;
   private boolean disabled = false;
@@ -36,6 +37,7 @@ public class EventService {
                       final ConcurrentHashMap<Id, Pair<Integer, Status>> membershipTable,
                       final Cache<Id, Pair<Integer, Status>> changeTable,
                       final ConcurrentHashMap<Id, Long> suspectTable,
+                      final ConcurrentHashMap<Id, Integer> suspectCounts,
                       final BlockingQueue<Id> receivedIds) {
     this.id = server.id;
     this.server = server;
@@ -44,6 +46,7 @@ public class EventService {
     this.membershipTable = membershipTable;
     this.changeTable = changeTable;
     this.suspectTable = suspectTable;
+    this.suspectCounts = suspectCounts;
     this.receivedIds = receivedIds;
     this.pendingEvents = new PriorityQueue<>();
   }
@@ -215,12 +218,14 @@ public class EventService {
         membershipTable.put(targetId, new Pair<>(incarnation, Status.SUSPECTED));
         changeTable.put(targetId, new Pair<>(incarnation, Status.SUSPECTED));
         suspectTable.putIfAbsent(targetId, current_time);
+        suspectCounts.put(targetId, suspectCounts.getOrDefault(targetId, 0) + 1);
       }
 
     } else if (!targetId.equals(id) && prev != null && prev.snd == Status.SUSPECTED && prev.fst < incarnation) {
       suspectTable.put(targetId, current_time);
       membershipTable.put(targetId, new Pair<>(incarnation, Status.SUSPECTED));
       changeTable.put(targetId, new Pair<>(incarnation, Status.SUSPECTED));
+      suspectCounts.put(targetId, suspectCounts.getOrDefault(targetId, 0) + 1);
     } else if (prev != null && prev.snd != Status.SUSPECTED) {
       LOG.log(Level.INFO, "{0}: Unexpected status transition for {1} from {2} to SUSPECTED",
               new Object[]{current_time, targetId, prev.snd});
@@ -291,7 +296,7 @@ public class EventService {
       System.exit(1);
     }
 
-    LOG.log(Level.INFO, "{0}: Node {1} receive a message type {2} from node {3}",
+    LOG.log(Level.FINE, "{0}: Node {1} receive a message type {2} from node {3}",
             new Object[]{current_time, id.getPort(), msg.getType(), msg.getCreatorId().getPort()});
     server.updateActive(msg.getSenderId(), current_time);
     server.updateActive(msg.getCreatorId(), current_time);

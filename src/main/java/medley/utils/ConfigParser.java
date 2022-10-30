@@ -25,6 +25,7 @@ public class ConfigParser{
   public String topology_type;
   public String topology_path;
   public String routing_path;
+  public String membership_path;
   public boolean optimize_route;
   public String distance_metric;
   public String coordinate_path;
@@ -100,6 +101,7 @@ public class ConfigParser{
       topology_path = (String) config.get("topology_path");
       routing_path = (String) config.get("routing_path");
       optimize_route = (config.get("optimize_route")).equals("true");
+      membership_path = (String) config.get("membership_path");
       distance_metric = (String) config.get("distance_metric");
       coordinate_path = (String) config.get("coordinate_path");
       stats_path = (String) config.get("stats_path");

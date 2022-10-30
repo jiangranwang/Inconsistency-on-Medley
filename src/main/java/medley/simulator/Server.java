@@ -2,6 +2,10 @@ package medley.simulator;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.sun.tools.javac.util.Pair;
 import medley.service.EventService;
 import medley.service.Event;
@@ -19,6 +23,7 @@ import java.util.logging.Logger;
 
 import static medley.simulator.Utils.*;
 import medley.utils.StatsRecorder;
+import org.json.simple.JSONObject;
 
 /**
  * Modification did for simulator:
@@ -60,6 +65,7 @@ public class Server implements Comparable<Server> {
   private final int port;
   private final ConcurrentHashMap<Id, Pair<Integer, Status>> membershipTable;
   private final ConcurrentHashMap<Id, Long> suspectTable;
+  private final ConcurrentHashMap<Id, Integer> suspectCounts;
   private Cache<Id, Pair<Integer, Status>> changeTable;
   private final HashMap<Id, Long> activeTable;
   private final HashSet<Id> neighborTable;
@@ -101,6 +107,38 @@ public class Server implements Comparable<Server> {
   @Override
   public int compareTo(Server in) {
     return Long.compare(this.next_event_time, in.next_event_time);
+  }
+
+  @SuppressWarnings("unchecked")
+  public void writeMembership(String path) {
+    JSONObject obj = new JSONObject();
+    JSONObject status = new JSONObject();
+    JSONObject suspects = new JSONObject();
+    for (Id id: membershipTable.keySet()) {
+      String st = membershipTable.get(id).snd == Status.ACTIVE ? "active" : "suspect";
+      status.put(id.getPort(), st);
+    }
+    obj.put("status", status);
+    for (Id id: suspectCounts.keySet()) {
+      suspects.put(id.getPort(), suspectCounts.get(id).toString());
+    }
+    obj.put("suspects", suspects);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    JsonElement je = JsonParser.parseString(obj.toJSONString());
+    String prettyJson = gson.toJson(je);
+
+    boolean success = false;
+    while (!success) {
+      try {
+        FileWriter file = new FileWriter(path + id.getPort() + ".json");
+        file.write(prettyJson);
+        file.flush();
+        file.close();
+        success = true;
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   public void shutdown(long time) {
@@ -156,6 +194,7 @@ public class Server implements Comparable<Server> {
     this.port = port;
     this.membershipTable = new ConcurrentHashMap<>();
     this.suspectTable = new ConcurrentHashMap<>();
+    this.suspectCounts = new ConcurrentHashMap<>();
     this.receivedIds = new ArrayBlockingQueue<>(3 * NUM_IND_CONTACTS);
     this.neighborTable = new HashSet<>();
     this.activeTable = new HashMap<>();
@@ -188,7 +227,7 @@ public class Server implements Comparable<Server> {
       .maximumSize(CHANGE_TABLE_SIZE)
       .build();
     this.networkService = EventServiceFactory.getInstance();
-    this.eventService = new EventService(this, membershipTable, changeTable, suspectTable, receivedIds);
+    this.eventService = new EventService(this, membershipTable, changeTable, suspectTable, suspectCounts, receivedIds);
     this.neighbour_distance = networkService.getNeighbourDistance(id);
     this.routingTable = networkService.getRoutingTable(id);
   }
@@ -262,7 +301,7 @@ public class Server implements Comparable<Server> {
   }
 
   private void initialize() throws InterruptedException {
-    LOG.log(Level.INFO, "Put itself {0} into the membership list", id);
+    LOG.log(Level.FINE, "Put itself {0} into the membership list", id);
     membershipTable.put(id, new Pair<>(0, Status.ACTIVE));
     changeTable.put(id, new Pair<>(0, Status.JOIN));
     if (introducerAddress != null) {
@@ -441,6 +480,7 @@ public class Server implements Comparable<Server> {
                 int incarnation = membershipTable.get(ping_target).fst;
                 membershipTable.put(ping_target, new Pair<>(incarnation, Status.SUSPECTED)); // it should be active before
                 changeTable.put(ping_target, new Pair<>(incarnation, Status.SUSPECTED));
+                suspectCounts.put(ping_target, suspectCounts.getOrDefault(ping_target, 0) + 1);
               }
             }
           }
@@ -516,7 +556,7 @@ public class Server implements Comparable<Server> {
       final long single_num_inst = (long) Math.ceil(scanValue / min_prob);
       ids.addInstance(targetId, single_num_inst);
     }
-    LOG.log(Level.INFO, "Node {0} begins a new super-round with {1} instances", new Object[]{id.getPort(), ids.size()});
+    LOG.log(Level.FINE, "Node {0} begins a new super-round with {1} instances", new Object[]{id.getPort(), ids.size()});
     return ids;
   }
 
@@ -577,7 +617,7 @@ public class Server implements Comparable<Server> {
   }
 
   public void unluckyNeighborHandler(Id unlucky) {
-    LOG.log(Level.INFO, "Node {0} receives node {1} unlucky. Updating probability list...", new Object[]{id.getPort(), unlucky.getPort()});
+    LOG.log(Level.FINE, "Node {0} receives node {1} unlucky. Updating probability list...", new Object[]{id.getPort(), unlucky.getPort()});
     unluckyNeighbors.add(unlucky);
     initial_prob_list = getToHigherAverage(initial_prob_list, unlucky);
     updateOnePassIdForUnluckyNode(unlucky);
@@ -706,6 +746,7 @@ public class Server implements Comparable<Server> {
         int incarnation = membershipTable.get(event.eventTarget).fst;
         membershipTable.put(event.eventTarget, new Pair<>(incarnation, Status.SUSPECTED)); // it should be active before
         changeTable.put(event.eventTarget, new Pair<>(incarnation, Status.SUSPECTED));
+        suspectCounts.put(event.eventTarget, suspectCounts.getOrDefault(event.eventTarget, 0) + 1);
       }
     }
   }
@@ -735,7 +776,7 @@ public class Server implements Comparable<Server> {
   }
 
   public void initializeInSimulator(List<Server> all_servers) throws InterruptedException {
-    LOG.log(Level.INFO, "Put itself {0} into the membership list", id);
+    LOG.log(Level.FINE, "Put itself {0} into the membership list", id);
 //    membershipTable.put(id, Status.ACTIVE);
 //    changeTable.put(id, Status.JOIN);
 //    if (introducerAddress != null) {
@@ -862,10 +903,10 @@ public class Server implements Comparable<Server> {
 
   private void reportUnlucky(long current_time) {
     if (current_time - unluckySendLast < UNLUCKY_THRESHOLD) {
-      LOG.log(Level.INFO, "Node {0} find itself unlucky. But just reported.", id.getPort());
+      LOG.log(Level.FINE, "Node {0} find itself unlucky. But just reported.", id.getPort());
       return;
     }
-    LOG.log(Level.INFO, "Node {0} find itself unreported unlucky. Sending message to neighbors...", id.getPort());
+    LOG.log(Level.FINE, "Node {0} find itself unreported unlucky. Sending message to neighbors...", id.getPort());
     statsRecorder.recordActiveUnlucky(id, current_time);
     List<Id> neighbors = getNeighbors();
     final Message unlucky_msg = Message.newBuilder()

@@ -6,7 +6,8 @@
   "distance_metric": "hop_distance",
   "routing_path": "random128_route.txt",
   "optimize_route": "false",
-  "coordinate_path": "random49.txt",
+  "coordinate_path": "topo/random49.txt",
+  "membership_path": "membership/",
   "stats_path": "../analyze/inconsistency/0.json",
   "to_file": "true",
   "powerk": "3.0",
@@ -31,6 +32,5 @@
   "mobile_percentage": "0.0",
   "mobile_distance": "0",
   "verbose": "1",
-  "events": [
-  ]
+  "events": []
 }

@@ -135,6 +135,11 @@ public class Simulator {
       }
       last_ping_time = next_ping_time;
       // TimeUnit.SECONDS.sleep(1);
+
+      // Write membership stats to file
+      for (Server server: all_servers) {
+        server.writeMembership(parser.membership_path);
+      }
     }
     statsRecorder.conclude();
     // statsRecorder.print(parser.VERBOSE);
@@ -154,7 +159,7 @@ public class Simulator {
     if (args.length > 0) {
       config_name = args[0];
     }
-    LOG.log(Level.INFO, "Parse configuration file");
+    LOG.log(Level.FINE, "Parse configuration file");
     if (!parser.parse(config_name)){
       LOG.log(Level.SEVERE, "Failed to parse configuration file");
       return;
