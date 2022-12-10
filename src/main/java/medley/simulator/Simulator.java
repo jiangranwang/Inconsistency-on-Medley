@@ -7,6 +7,7 @@ import medley.utils.ConfigParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -134,7 +135,7 @@ public class Simulator {
         server.checkSelfUnlucky(current_time, false);
       }
       last_ping_time = next_ping_time;
-      // TimeUnit.SECONDS.sleep(1);
+      // TimeUnit.MILLISECONDS.sleep(200);
 
       // Write membership stats to file
       for (Server server: all_servers) {

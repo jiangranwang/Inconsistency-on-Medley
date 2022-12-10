@@ -185,6 +185,8 @@ public class EventService {
         // add false positive node back to membership list
         membershipTable.put(targetId, new Pair<>(incarnation, Status.ACTIVE));
         changeTable.put(targetId, new Pair<>(incarnation, Status.ACTIVE));
+        server.routingTable = networkService.getRoutingTable(server.id);
+        server.neighbour_distance = networkService.getNeighbourDistance(server.id);
         LOG.log(Level.INFO, "{0}: {1} merge {2} from FAILED to ACTIVE.",
                 new Object[]{current_time, id.getPort(), targetId});
       }
