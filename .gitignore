@@ -29,5 +29,8 @@ hs_err_pid*
 .idea/
 .oracle_jre_usage/
 target/
+analyze/
+bin/membership/
 __pycache__
 analyze/inconsistency/
+*.json

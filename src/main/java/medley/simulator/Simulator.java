@@ -4,9 +4,8 @@ import medley.utils.TopologyGenerator;
 import medley.utils.StatsRecorder;
 import medley.utils.ConfigParser;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.io.FileWriter;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,7 +34,8 @@ public class Simulator {
     if (parser == null) throw new Exception("no config file");
     eventList = new ArrayList<>(parser.eventList);
     current_time = 0;
-    
+
+    FileWriter fps_file = new FileWriter(parser.membership_path + "fps.txt");
     EventServiceFactory eventServiceFactory = new EventServiceFactory(parser.length);
     parser.copyProperties(eventServiceFactory);
     serversWithPendingEvents = new PriorityQueue<>();
@@ -140,11 +140,28 @@ public class Simulator {
       // Write membership stats to file
       for (Server server: all_servers) {
         server.writeMembership(parser.membership_path);
+//        int fps = parser.NUM_SERVER - getMaxFalsePositive(all_servers);
+//        fps_file.write(fps + "\n");
       }
     }
     statsRecorder.conclude();
     // statsRecorder.print(parser.VERBOSE);
     statsRecorder.toFile(parser.VERBOSE);
+
+  }
+
+  private static int getMaxFalsePositive(List<Server> servers) {
+    HashMap<Id, Integer> counts = new HashMap<>();
+    for (Server server: servers) {
+      counts.put(server.id, 0);
+    }
+    for (Server server: servers) {
+      List<Id> aliveNodes = server.getAliveNodes();
+      for (Id id: aliveNodes) {
+        counts.put(id, counts.get(id) + 1);
+      }
+    }
+    return Collections.min(counts.values());
   }
 
   private static void freshServerQueue(List<Server> all_servers) {

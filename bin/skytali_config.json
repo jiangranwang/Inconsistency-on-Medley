@@ -6,7 +6,7 @@
   "distance_metric": "hop_distance",
   "routing_path": "random128_route.txt",
   "optimize_route": "false",
-  "coordinate_path": "topo/random32.txt",
+  "coordinate_path": "topo/grid4,4.txt",
   "membership_path": "membership/",
   "stats_path": "0.json",
   "to_file": "true",
@@ -17,7 +17,7 @@
   "length": "15",
   "delay_one_hop": "5",
   "num_run": "1",
-  "num_server": "32",
+  "num_server": "16",
   "end_time": "100000000",
   "base_time": "500",
   "ping_rtt": "500",
@@ -32,5 +32,16 @@
   "mobile_percentage": "0.0",
   "mobile_distance": "0",
   "verbose": "1",
-  "events": []
+  "events": [
+    {
+      "mode": "shutdown",
+      "time": "335",
+      "server": "2"
+    },
+    {
+      "mode": "shutdown",
+      "time": "7295",
+      "server": "3"
+    }
+  ]
 }

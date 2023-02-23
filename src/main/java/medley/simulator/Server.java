@@ -185,6 +185,16 @@ public class Server implements Comparable<Server> {
     disabled = false;
   }
 
+  public List<Id> getAliveNodes() {
+    List<Id> vals = new ArrayList<>();
+    for (Id id: membershipTable.keySet()) {
+      if (membershipTable.get(id).snd != Status.FAILED) {
+        vals.add(id);
+      }
+    }
+    return vals;
+  }
+
   public static Server.Builder newBuilder() {
     return new Builder();
   }
