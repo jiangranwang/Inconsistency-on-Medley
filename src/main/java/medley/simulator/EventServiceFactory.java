@@ -165,7 +165,7 @@ public class EventServiceFactory {
   }
 
   public void send(int final_receiver, int next_hop, Message msg, long current_time) {
-    if ((msg.getType() == Type.IND_PING_ACK || msg.getType() == Type.ACK) && msg.getSenderId().getPort() < 5) {
+    if ((msg.getType() == Type.IND_PING_ACK || msg.getType() == Type.ACK) && msg.getSenderId().getPort() < 0) {
       if (randDrop.nextDouble() < MSG_DROP_RATE + (5 - msg.getSenderId().getPort()) / 2.0 * MSG_DROP_RATE) {
         return;
       }

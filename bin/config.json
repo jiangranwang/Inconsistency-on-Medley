@@ -4,6 +4,7 @@
   "topology_type": "random",
   "topology_path": "not_important.txt",
   "distance_metric": "hop_distance",
+  "wait_for": "false",
   "routing_path": "random128_route.txt",
   "optimize_route": "false",
   "coordinate_path": "topo/random32.txt",

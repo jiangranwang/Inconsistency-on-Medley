@@ -4,7 +4,10 @@ import medley.utils.TopologyGenerator;
 import medley.utils.StatsRecorder;
 import medley.utils.ConfigParser;
 
+import java.io.BufferedReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -22,6 +25,7 @@ public class Simulator {
   private static int ROUND_PERIOD_MS = 4 * BASE_TIME; // the period for each round
   private static double POWERK = 0.0;
   private static List<long[]> eventList;
+  private static Runtime run = Runtime.getRuntime();
 
   private static PriorityQueue<Server> serversWithPendingEvents;
   private static long current_time = 0;
@@ -89,6 +93,9 @@ public class Simulator {
 
     while (current_time < END_TIME) {
       long next_ping_time = last_ping_time + ROUND_PERIOD_MS;
+      while (getLatestTime() < current_time) {
+        TimeUnit.MILLISECONDS.sleep(100);
+      }
 
       freshServerQueue(all_servers);
 
@@ -111,15 +118,15 @@ public class Simulator {
             switch ((int) eventParams[2]) {
               case 0:
                 server.shutdown(current_time);
-                eventServiceFactory.removeServer(server.id);
+                // eventServiceFactory.removeServer(server.id);
                 break;
               case 1:
                 server.restart(current_time);
-                eventServiceFactory.addServer(server.id);
+                // eventServiceFactory.addServer(server.id);
                 break;
               case 2:
                 server.shutdown(current_time);
-                eventServiceFactory.removeServer(server.id);
+                // eventServiceFactory.removeServer(server.id);
                 statsRecorder.conclude(server.id);
                 break;
               default:
@@ -135,7 +142,7 @@ public class Simulator {
         server.checkSelfUnlucky(current_time, false);
       }
       last_ping_time = next_ping_time;
-      // TimeUnit.MILLISECONDS.sleep(200);
+      // TimeUnit.MILLISECONDS.sleep(15000);
 
       // Write membership stats to file
       for (Server server: all_servers) {
@@ -171,16 +178,47 @@ public class Simulator {
     }
   }
 
+  private static long getLatestTime() {
+    String command = "./scripts/get_time.sh";
+    StringBuilder output = new StringBuilder();
+    try {
+      Process pr = run.exec(command);
+      pr.waitFor();
+      String s = "";
+      BufferedReader stdOutput = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+      while ((s = stdOutput.readLine()) != null) {
+        output.append(s).append("\n");
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    String str = output.toString();
+    if (output.toString().length() < 5) {
+      return 10000;
+    }
+    str = str.substring(str.indexOf("at time"));
+    return Long.parseLong(str.split(" ")[2].replace("\n", ""));
+  }
+
   public static void main(String[] args) throws Exception {
     String config_name = "config.json";
     ConfigParser parser = new ConfigParser();
     if (args.length > 0) {
       config_name = args[0];
     }
+    if (Objects.equals(config_name, "config.json")) {
+      System.out.println("change message drop rate with lower hash!");
+      System.exit(0);
+    }
     LOG.log(Level.FINE, "Parse configuration file");
     if (!parser.parse(config_name)){
       LOG.log(Level.SEVERE, "Failed to parse configuration file");
       return;
+    }
+    if (parser.wait_for) {
+      while (getLatestTime() > 200) {
+        TimeUnit.SECONDS.sleep(1);
+      }
     }
 
     NUM_RUN = parser.NUM_RUN;

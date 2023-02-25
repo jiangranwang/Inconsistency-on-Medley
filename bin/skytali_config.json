@@ -4,20 +4,21 @@
   "topology_type": "random",
   "topology_path": "not_important.txt",
   "distance_metric": "hop_distance",
-  "routing_path": "random128_route.txt",
-  "optimize_route": "false",
-  "coordinate_path": "topo/grid4,4.txt",
+  "wait_for": "true",
+  "optimize_route": "true",
+  "routing_path": "topo/grid10,10_route.txt",
+  "coordinate_path": "topo/grid10,10.txt",
   "membership_path": "membership/",
   "stats_path": "0.json",
   "to_file": "true",
   "powerk": "3.0",
-  "msg_drop_rate": "0.15",
+  "msg_drop_rate": "0.1",
   "one_hop_radius": "4.0",
   "delay": "5",
   "length": "15",
   "delay_one_hop": "5",
   "num_run": "1",
-  "num_server": "16",
+  "num_server": "100",
   "end_time": "100000000",
   "base_time": "500",
   "ping_rtt": "500",
@@ -35,13 +36,23 @@
   "events": [
     {
       "mode": "shutdown",
-      "time": "335",
-      "server": "2"
+      "time": "29523",
+      "server": "98"
     },
     {
       "mode": "shutdown",
-      "time": "7295",
-      "server": "3"
+      "time": "68962",
+      "server": "82"
+    },
+    {
+      "mode": "shutdown",
+      "time": "76312",
+      "server": "45"
+    },
+    {
+      "mode": "shutdown",
+      "time": "82547",
+      "server": "12"
     }
   ]
 }

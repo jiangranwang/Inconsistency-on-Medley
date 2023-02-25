@@ -96,7 +96,7 @@ public class EventService {
   }
 
   public void addEvent(Event event) {
-    if (disabled)
+    if (disabled && event.eventType != EventType.REGULAR_PING)
       return;
     LOG.log(Level.FINER, "    Node {0} get an event {1} for node {2} time {3}",
         new Object[]{id.getPort(), event.eventType, event.eventTarget, event.eventTime});
@@ -106,8 +106,8 @@ public class EventService {
   }
 
   public void executeNextEvent() throws Exception {
-    if (disabled)
-      return;
+//    if (disabled)
+//      return;
     Event event = this.pendingEvents.poll();
     if (event == null) {
       LOG.log(Level.WARNING, "Error processing event.");

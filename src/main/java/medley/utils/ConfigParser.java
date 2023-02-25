@@ -26,6 +26,7 @@ public class ConfigParser{
   public String topology_path;
   public String routing_path;
   public String membership_path;
+  public boolean wait_for;
   public boolean optimize_route;
   public String distance_metric;
   public String coordinate_path;
@@ -100,6 +101,7 @@ public class ConfigParser{
       topology_type = (String) config.get("topology_type");
       topology_path = (String) config.get("topology_path");
       routing_path = (String) config.get("routing_path");
+      wait_for = Boolean.parseBoolean(config.get("wait_for").toString());
       optimize_route = (config.get("optimize_route")).equals("true");
       membership_path = (String) config.get("membership_path");
       distance_metric = (String) config.get("distance_metric");
