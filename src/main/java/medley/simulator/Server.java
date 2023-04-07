@@ -708,7 +708,7 @@ public class Server implements Comparable<Server> {
   *   handleACKCHECK:
   *   DESCRIPTION: handle ACK_CHECK event*/
   public void handleACKCHECK(Event event){
-    final List<Id> receivedList = new ArrayList<>(3 * NUM_IND_CONTACTS);
+    final List<Id> receivedList = new ArrayList<>();
     receivedIds.drainTo(receivedList);
     if (receivedList.size() > 0) {
       LOG.log(Level.FINER, "Node {0} Received ACK from node {1}", new Object[]{id.getPort(), receivedList.get(0).getPort()});
@@ -730,7 +730,7 @@ public class Server implements Comparable<Server> {
               .setSenderIncarnation(membershipTable.get(id).fst)
               .build();
       for (final Id targetId : ind_targets) {
-        LOG.log(Level.FINER, "Node {0} send ind_ping to {1} for {2}",
+        LOG.log(Level.INFO, "Node {0} send ind_ping to {1} for {2}",
             new Object[]{id.getPort(), targetId.getPort(), event.eventTarget.getPort()});
 //        networkService.send(targetId, ind_ping, event.eventTime);
         this.eventService.sendMessage(targetId, ind_ping, event.eventTime);
@@ -743,7 +743,7 @@ public class Server implements Comparable<Server> {
    *   handleINDACKCHECK:
    *   DESCRIPTION: handle IND_ACK_CHECK event*/
   public void handleINDACKCHECK(Event event){
-    final List<Id> receivedIndList = new ArrayList<>(3 * NUM_IND_CONTACTS);
+    final List<Id> receivedIndList = new ArrayList<>();
     receivedIds.drainTo(receivedIndList);
     if (!receivedIndList.contains(event.eventTarget)) {
       // no one received a ack from ping target

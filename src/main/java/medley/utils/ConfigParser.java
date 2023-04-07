@@ -35,6 +35,7 @@ public class ConfigParser{
   public int length;
   public double mobile_percentage;
   public double mobile_distance;
+  public int script_num;
 
   public double POWERK;
   public double MSG_DROP_RATE;
@@ -111,6 +112,7 @@ public class ConfigParser{
       length = Integer.parseInt((String) config.get("length"));
       mobile_percentage = Double.parseDouble((String) config.get("mobile_percentage"));
       mobile_distance = Double.parseDouble((String) config.get("mobile_distance"));
+      script_num = Integer.parseInt(config.get("script_num").toString());
 
       POWERK = Double.parseDouble((String) config.get("powerk"));
       MSG_DROP_RATE = Double.parseDouble((String) config.get("msg_drop_rate"));

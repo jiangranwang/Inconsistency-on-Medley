@@ -4,10 +4,7 @@ import medley.utils.TopologyGenerator;
 import medley.utils.StatsRecorder;
 import medley.utils.ConfigParser;
 
-import java.io.BufferedReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -26,6 +23,7 @@ public class Simulator {
   private static double POWERK = 0.0;
   private static List<long[]> eventList;
   private static Runtime run = Runtime.getRuntime();
+  private static int scriptNum;
 
   private static PriorityQueue<Server> serversWithPendingEvents;
   private static long current_time = 0;
@@ -40,6 +38,8 @@ public class Simulator {
     current_time = 0;
 
     FileWriter fps_file = new FileWriter(parser.membership_path + "fps.txt");
+//    for(File file: Objects.requireNonNull(new File(parser.membership_path).listFiles()))
+//      file.delete();
     EventServiceFactory eventServiceFactory = new EventServiceFactory(parser.length);
     parser.copyProperties(eventServiceFactory);
     serversWithPendingEvents = new PriorityQueue<>();
@@ -89,28 +89,50 @@ public class Simulator {
       server.initializeInSimulator(all_servers);
     }
 
+    Timer timer = new Timer();
+    TimerTask task = new TimerTask() {
+      @Override
+      public void run() {
+        // Write membership stats to file
+        for (Server server: all_servers) {
+          server.writeMembership(parser.membership_path);
+//        int fps = parser.NUM_SERVER - getMaxFalsePositive(all_servers);
+//        fps_file.write(fps + "\n");
+        }
+      }
+    };
+    timer.scheduleAtFixedRate(task, 1000, 1000);
+
     long last_ping_time = 0;
+    long last_event_time = 0;
 
     while (current_time < END_TIME) {
       long next_ping_time = last_ping_time + ROUND_PERIOD_MS;
-      while (getLatestTime() < current_time) {
-        TimeUnit.MILLISECONDS.sleep(100);
-      }
 
       freshServerQueue(all_servers);
+
+      if (last_event_time != current_time) {
+        while (parser.wait_for && getLatestTime() < current_time) {
+          TimeUnit.MILLISECONDS.sleep(100);
+        }
+      }
 
       // There are pending events to handle before the next round of ping
       if (serversWithPendingEvents.peek() != null && serversWithPendingEvents.peek().next_event_time <= next_ping_time) {
         Server next_server = serversWithPendingEvents.poll();
         if (next_server != null) {
+          last_event_time = current_time;
           current_time = next_server.next_event_time;
           next_server.processNextEvent();
         }
         continue;
       }
 
+      System.out.println("medley time: " + current_time);
       // No pending events or pending events are all after the next round of pings
+      last_event_time = current_time;
       current_time = last_ping_time;
+
       for (Server server: all_servers) {
         for (int i = 0; i < eventList.size(); i++) {
           long[] eventParams = eventList.get(i);
@@ -143,13 +165,6 @@ public class Simulator {
       }
       last_ping_time = next_ping_time;
       // TimeUnit.MILLISECONDS.sleep(15000);
-
-      // Write membership stats to file
-      for (Server server: all_servers) {
-        server.writeMembership(parser.membership_path);
-//        int fps = parser.NUM_SERVER - getMaxFalsePositive(all_servers);
-//        fps_file.write(fps + "\n");
-      }
     }
     statsRecorder.conclude();
     // statsRecorder.print(parser.VERBOSE);
@@ -179,7 +194,7 @@ public class Simulator {
   }
 
   private static long getLatestTime() {
-    String command = "./scripts/get_time.sh";
+    String command = "./scripts/get_time.sh " + scriptNum;
     StringBuilder output = new StringBuilder();
     try {
       Process pr = run.exec(command);
@@ -194,10 +209,11 @@ public class Simulator {
     }
     String str = output.toString();
     if (output.toString().length() < 5) {
-      return 10000;
+      return -1;
     }
     str = str.substring(str.indexOf("at time"));
-    return Long.parseLong(str.split(" ")[2].replace("\n", ""));
+    int scale = NUM_SERVER < 250 ? 100 : 1;
+    return scale * Long.parseLong(str.split(" ")[2].replace("\n", ""));
   }
 
   public static void main(String[] args) throws Exception {
@@ -215,11 +231,6 @@ public class Simulator {
       LOG.log(Level.SEVERE, "Failed to parse configuration file");
       return;
     }
-    if (parser.wait_for) {
-      while (getLatestTime() > 200) {
-        TimeUnit.SECONDS.sleep(1);
-      }
-    }
 
     NUM_RUN = parser.NUM_RUN;
     NUM_SERVER = parser.NUM_SERVER;
@@ -228,6 +239,7 @@ public class Simulator {
     PING_RTT = parser.PING_RTT;
     ROUND_PERIOD_MS = parser.ROUND_PERIOD_MS;
     POWERK = parser.POWERK;
+    scriptNum = parser.script_num;
 
     for (int i = 0; i < NUM_RUN; ++i) {
       System.out.println("run number: " + (i + 1));

@@ -1,8 +1,8 @@
 import numpy as np
 
 
-location_fn = 'topo/grid10,100.txt'
-dest_fn = 'topo/grid10,100_route.txt'
+location_fn = 'topo/grid10,25.txt'
+dest_fn = 'topo/grid10,10_route.txt'
 radius = 4
 f = open(location_fn, 'r')
 cs = f.readlines()
