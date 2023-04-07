@@ -2,6 +2,7 @@ Overview
 -------------------
 This is an extension of Medley [[1]](#1) failure detector with feedback-based
 optimizations to reduce tail failure detection time caused by unlucky nodes.
+This is used to generate the the membership files for the [Leader Election](https://github.com/jiangranwang/LeaderElection) project.
 
 Prerequisites
 --------------------
