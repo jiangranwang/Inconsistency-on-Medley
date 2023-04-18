@@ -111,11 +111,11 @@ public class Simulator {
 
       freshServerQueue(all_servers);
 
-      if (last_event_time != current_time) {
-        while (parser.wait_for && getLatestTime() < current_time) {
-          TimeUnit.MILLISECONDS.sleep(100);
-        }
-      }
+//      if (last_event_time != current_time) {
+//        while (parser.wait_for && getLatestTime() < current_time) {
+//          TimeUnit.MILLISECONDS.sleep(100);
+//        }
+//      }
 
       // There are pending events to handle before the next round of ping
       if (serversWithPendingEvents.peek() != null && serversWithPendingEvents.peek().next_event_time <= next_ping_time) {
@@ -128,7 +128,7 @@ public class Simulator {
         continue;
       }
 
-      System.out.println("medley time: " + current_time);
+      // System.out.println("medley time: " + current_time);
       // No pending events or pending events are all after the next round of pings
       last_event_time = current_time;
       current_time = last_ping_time;
@@ -222,10 +222,10 @@ public class Simulator {
     if (args.length > 0) {
       config_name = args[0];
     }
-    if (Objects.equals(config_name, "config.json")) {
-      System.out.println("change message drop rate with lower hash!");
-      System.exit(0);
-    }
+//    if (Objects.equals(config_name, "config.json")) {
+//      System.out.println("change message drop rate with lower hash!");
+//      System.exit(0);
+//    }
     LOG.log(Level.FINE, "Parse configuration file");
     if (!parser.parse(config_name)){
       LOG.log(Level.SEVERE, "Failed to parse configuration file");
