@@ -22,10 +22,12 @@ class ListComparator<T extends Comparable<T>> implements Comparator<long[]> {
 public class ConfigParser{
   public Strategy strategy;
   public boolean generate_new_topology;
+  public boolean use_churn;
   public String topology_type;
   public String topology_path;
   public String routing_path;
   public String membership_path;
+  public String churn_path;
   public boolean optimize_route;
   public String distance_metric;
   public String coordinate_path;
@@ -55,6 +57,7 @@ public class ConfigParser{
   public int PASSIVE_FEEDBACK_TIMEOUT;
   public int UNLUCKY_THRESHOLD;
   public double UNLUCKY_ALPHA;
+  public double CHURN_RATIO;
   public int VERBOSE = 0;
 
   public List<long[]> eventList;
@@ -97,6 +100,7 @@ public class ConfigParser{
       JSONObject config = (JSONObject) obj;
       strategy = getStrategy((String) config.get("strategy"));
       generate_new_topology = ((String) config.get("generate_new_topology")).equals("true");
+      use_churn = ((String) config.get("use_churn")).equals("true");
       topology_type = (String) config.get("topology_type");
       topology_path = (String) config.get("topology_path");
       routing_path = (String) config.get("routing_path");
@@ -104,6 +108,7 @@ public class ConfigParser{
       membership_path = (String) config.get("membership_path");
       distance_metric = (String) config.get("distance_metric");
       coordinate_path = (String) config.get("coordinate_path");
+      churn_path = (String) config.get("churn_path");
       stats_path = (String) config.get("stats_path");
       to_file = ((String) config.get("to_file")).equals("true");
       length = Integer.parseInt((String) config.get("length"));
@@ -130,6 +135,7 @@ public class ConfigParser{
       PASSIVE_FEEDBACK_TIMEOUT = Integer.parseInt((String) config.get("passive_feedback_timeout"));
       UNLUCKY_THRESHOLD = Integer.parseInt((String) config.get("unlucky_threshold"));
       UNLUCKY_ALPHA = Double.parseDouble((String) config.get("unlucky_alpha"));
+      CHURN_RATIO = Double.parseDouble((String) config.get("churn_ratio"));
 
       VERBOSE = Integer.parseInt((String) config.get("verbose"));
 

@@ -580,7 +580,7 @@ public class StatsRecorder{
         obj = (JSONObject) jsonParser.parse(reader);
       }
 
-      FileWriter cfile = new FileWriter(parser.stats_path, false);
+      // FileWriter cfile = new FileWriter(parser.stats_path, false);
 
       result.put("runNum", Integer.toString(runNum));
       result.put("ttlMsgNum", Integer.toString(ttlMsgNum));
@@ -724,8 +724,8 @@ public class StatsRecorder{
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
       JsonElement je = JsonParser.parseString(obj.toJSONString());
       String prettyJson = gson.toJson(je);
-      cfile.write(prettyJson);
-      cfile.flush();
+      // cfile.write(prettyJson);
+      // cfile.flush();
 
     } catch (Exception e) {
       e.printStackTrace();

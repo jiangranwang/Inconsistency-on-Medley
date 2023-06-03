@@ -32,12 +32,12 @@ public class TopologyGenerator {
   ArrayList<double[]> rooms;
 
   // initialize cluster boundary: x_min, x_max, y_min, y_max, num_nodes
-  double[] game_room = new double[]{0, 6, 2, 7, 9};
-  double[] living_room = new double[]{7, 15, 0, 9, 16};
-  double[] master_room = new double[]{0, 6, 9, 15, 10};
-  double[] bedroom_1 = new double[]{7, 10.5, 11, 15, 7};
-  double[] bedroom_2 = new double[]{11.5, 15, 11, 15, 7};
-  int[] room_bound = new int[]{0, 9, 25, 35, 42, 49};
+  double[] game_room = new double[]{0, 6, 2, 7, 12};
+  double[] living_room = new double[]{7, 15, 0, 9, 19};
+  double[] master_room = new double[]{0, 6, 9, 15, 13};
+  double[] bedroom_1 = new double[]{7, 10.5, 11, 15, 10};
+  double[] bedroom_2 = new double[]{11.5, 15, 11, 15, 10};
+  int[] room_bound = new int[]{0, 12, 31, 44, 54, 64};
 
   public TopologyGenerator() {
     this.locationMap = new LinkedHashMap<>();
@@ -185,6 +185,7 @@ public class TopologyGenerator {
     int id_count = 0;
     for (double[] room : rooms) {
       int num_nodes = (int) room[4];
+      // System.out.println("Num_nodes in room is "+String.valueOf(num_nodes));
       for (int i = 0; i < num_nodes; i++) {
         final Id id = Id.newBuilder()
                 .setHostname("192.168.0." + id_count)
@@ -197,6 +198,7 @@ public class TopologyGenerator {
         locations.put(id, new Pair<>(x, y));
       }
     }
+    // System.out.println(locations);
     return locations;
   }
 
@@ -238,6 +240,7 @@ public class TopologyGenerator {
   public void set_locations(String path, boolean optimize_route, String rpath) {
     // read server location information from coordinate file
     try {
+      // System.out.println("top of set_locations with path = " + path);
       BufferedReader reader = new BufferedReader(new FileReader(path));
 //      String line = reader.readLine();
 //      String[] list = line.split(",");
@@ -248,6 +251,7 @@ public class TopologyGenerator {
 
       String line = reader.readLine();
       String[] list;
+      // System.out.println("Entering while loop in set_locations");
       while (line != null) {
         list = line.split(",");
         Id id = Id.newBuilder()
@@ -261,8 +265,11 @@ public class TopologyGenerator {
         line = reader.readLine();
         i++;
       }
+      // System.out.println("Exited while loop in set_locations");
       size = i;
+      // System.out.println("Size is "+String.valueOf(size));
     } catch (Exception e) {
+      System.out.println("set_locations exception was " + e);
       e.printStackTrace();
     }
     if (optimize_route) {
@@ -581,6 +588,7 @@ public class TopologyGenerator {
       routingTable.put(from, new HashMap<>());
       hopNumMap.put(from, new HashMap<>());
     }
+    // System.out.println("Step 0 done");
     // Step 1: Generate distances between 1-hop nodes.
     //         Direct distance between two nodes is < one_hop_radius.
     for (Id from : this.locationMap.keySet()) {
@@ -597,6 +605,8 @@ public class TopologyGenerator {
         }
       }
     }
+    // System.out.println("Step 1 done");
+
     // Step 2: Generate shortest distances between every two nodes (Floyd)
     for (Id middle : this.locationMap.keySet()) {
       // Pick all vertices as source one by one
@@ -616,6 +626,7 @@ public class TopologyGenerator {
         }
       }
     }
+    // System.out.println("Step 2 done");
 
     // Step 3: check network partition
     for (Id from : this.locationMap.keySet()) {
@@ -627,7 +638,8 @@ public class TopologyGenerator {
         }
       }
     }
-
+    
+    // System.out.println("Step 3 done");
     // Step 4: generate hop number map
     for (Id from : locationMap.keySet()) {
       for (Id to : locationMap.keySet()) {
@@ -644,6 +656,8 @@ public class TopologyGenerator {
         hopNumMap.get(from).put(to, hop);
       }
     }
+    // System.out.println("Step 4 done");
+
     return true;
   }
 
@@ -675,6 +689,7 @@ public class TopologyGenerator {
       BufferedWriter output = new BufferedWriter(cfile);
       StringBuilder str = new StringBuilder();
       // str.append(area_width).append(",").append(area_length).append(",").append(one_hop_radius).append("\n");
+      // System.out.println("Upper bound of loop size is "+String.valueOf(size));
       for (int i = 0; i < size; i++) {
         final Id id = Id.newBuilder()
                 .setHostname("192.168.0." + i)
@@ -682,6 +697,9 @@ public class TopologyGenerator {
                 .setTs(0)
                 .build();
         Pair<Double, Double> c = locationMap.get(id);
+        if (c == null) {
+          System.out.println("Couldn't find id " + String.valueOf(i)+" in locationMap");
+        }
         str.append(c.fst).append(",").append(c.snd).append("\n");
       }
       output.write(str.toString());

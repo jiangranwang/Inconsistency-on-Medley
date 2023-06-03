@@ -5,5 +5,8 @@ public enum EventType {
   ACK_CHECK,
   IND_ACK_CHECK,
   FAIL_CHECK,
+  JOIN,
+  LEAVE,
+  CHURN_PROCESSED
 }
 

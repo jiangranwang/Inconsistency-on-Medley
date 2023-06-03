@@ -2,14 +2,29 @@ package medley.simulator;
 
 import medley.utils.TopologyGenerator;
 import medley.utils.StatsRecorder;
+import medley.service.Event;
+import medley.service.EventType;
 import medley.utils.ConfigParser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.EnumSet;
 import java.util.PriorityQueue;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+
+import java.io.FileWriter;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+
+import java.lang.Runtime;
 
 public class Simulator {
   private static final Logger LOG = Logger.getLogger(Simulator.class.getName());
@@ -31,10 +46,61 @@ public class Simulator {
   private Simulator() {
   }
 
+  private static void insertChurnTrace(ConfigParser parser, List<Server> all_servers) {
+    BufferedReader reader;
+    try {
+			reader = new BufferedReader(new FileReader(parser.churn_path));
+			String line = reader.readLine();
+      String last_node = "";
+      int i = -1;
+      Event e = null;
+      EventType type = EventType.JOIN;
+      long lastTime = 0;
+      Random rand = new Random(System.currentTimeMillis());
+      
+			while (line != null) {
+				// System.out.println(line);
+        String[] parts = line.split("\t");
+        if (!parts[0].equals(last_node)) {
+          last_node = parts[0];
+          i++;
+        }
+
+        if (parts[2].equals("1")){
+          type = EventType.JOIN;
+        } else if (parts[2].equals("0")){
+          type = EventType.LEAVE;
+        } else{
+          System.out.println("ERROR in parsing file");
+          System.exit(1);
+        }
+        lastTime = (long) (Integer.parseInt(parts[1])*ROUND_PERIOD_MS*parser.CHURN_RATIO);
+        lastTime += (rand.nextLong() % ROUND_PERIOD_MS);
+        e = new Event(type, null, lastTime, null);
+        all_servers.get(i*2).addEvent(e);
+				// read next line
+				line = reader.readLine();
+			}
+      e = new Event(EventType.CHURN_PROCESSED, null, lastTime+ROUND_PERIOD_MS, null, parser.membership_path+"done");
+      System.out.println("Created processed event at time "+String.valueOf(lastTime+ROUND_PERIOD_MS));
+      all_servers.get(1).addEvent(e);
+      
+      
+
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+  }
+
   private static void run(ConfigParser parser, int runNum) throws Exception {
     if (parser == null) throw new Exception("no config file");
     eventList = new ArrayList<>(parser.eventList);
     current_time = 0;
+
+    // System.out.println("Beginning simulator run");
+
+
     
     EventServiceFactory eventServiceFactory = new EventServiceFactory(parser.length);
     parser.copyProperties(eventServiceFactory);
@@ -42,29 +108,47 @@ public class Simulator {
     String root = System.getProperty("user.dir") + "/";
     String topoPath = root + parser.topology_path;
     String cpath = root + parser.coordinate_path;
+    // System.out.println("cpath ln 50 Simulator is "+cpath);
     if (!cpath.contains(".txt")) {
       cpath += "_" + runNum + ".txt";
     }
     if (parser.generate_new_topology) {
-      cpath = root + parser.coordinate_path.substring(0, parser.coordinate_path.lastIndexOf('.')) + "_" + runNum + ".txt";
+      cpath = root + parser.coordinate_path.substring(0, parser.coordinate_path.lastIndexOf('.')) + ".txt"; // + "_" + runNum + ".txt";
       if (parser.eventList.size() == 1) {
         int failedNode = (int) parser.eventList.get(0)[0];
         if (failedNode == 0) {
+          // System.out.println("Reaching code to generate the topology");
           TopologyGenerator topologyGenerator = new TopologyGenerator();
           topologyGenerator.setArea(parser.length, parser.length);
           topologyGenerator.setOneHopRadius(parser.RADIUS);
           topologyGenerator.setSize(NUM_SERVER);
           topologyGenerator.build(cpath, parser.topology_type, (int) parser.eventList.get(0)[2]);
+          System.out.println("Saved topo to " + cpath);
+        }
+        else {
+          System.out.println("Didn't generate topo bc failedNode was "+String.valueOf(failedNode));
         }
       }
+      else {
+        System.out.println("Didn't generate topo bc eventList.size() was "+String.valueOf(parser.eventList.size()));
+      }
     }
+    
+    // System.out.println("About to init serviceFactory");
     eventList = eventServiceFactory.init(cpath, parser.eventList, parser.optimize_route, parser.routing_path);
+    // System.out.println("Finished init serviceFactory");
     if (parser.mobile_percentage > 0) {
       cpath = root + parser.coordinate_path.substring(0, parser.coordinate_path.lastIndexOf('.')) + "_moved_" + runNum + ".txt";
       eventServiceFactory.moveServers(parser.mobile_percentage, parser.mobile_distance, cpath);
     }
-
+    
     List<Server> all_servers = new ArrayList<>();
+
+    FileWriter mFile = new FileWriter(parser.membership_path+"memlist.csv");
+
+    // System.out.println("Just created mFile");
+
+
 
     for (int i = 0; i < NUM_SERVER; ++i) {
       Server server = Server.newBuilder()
@@ -85,10 +169,23 @@ public class Simulator {
       server.initializeInSimulator(all_servers);
     }
 
+    if (parser.use_churn) {
+      insertChurnTrace(parser,all_servers);
+      // System.out.println("About to enter event loop");
+      File file = new File(parser.membership_path+"flag");
+      file.createNewFile();
+      Files.setPosixFilePermissions(file.toPath(), 
+        EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE));
+      // Runtime.getRuntime().exec("touch "+parser.membership_path+"flag");
+      System.out.println("Created flag");
+    }
+
     long last_ping_time = 0;
+
 
     while (current_time < END_TIME) {
       long next_ping_time = last_ping_time + ROUND_PERIOD_MS;
+      // System.out.println("in event loop with current_time = " + String.valueOf(current_time));
 
       freshServerQueue(all_servers);
 
@@ -138,8 +235,21 @@ public class Simulator {
       // TimeUnit.MILLISECONDS.sleep(200);
 
       // Write membership stats to file
+      int rd_num = (int) last_ping_time/ROUND_PERIOD_MS;
+
+
+      // if (rd_num%10 == 0) {
+      //   System.out.println("Completed round "+String.valueOf(rd_num));
+      // }
+
+
+      // System.out.println("Size of all_servers is " + String.valueOf(all_servers.size()) + " at round " + String.valueOf(rd_num));
       for (Server server: all_servers) {
-        server.writeMembership(parser.membership_path);
+        // System.out.println("Calling writemembership on server ");
+        server.writeMembership(parser.membership_path,rd_num,NUM_SERVER,(int) current_time/ROUND_PERIOD_MS);
+      }
+      if (rd_num%10000==0){
+        System.out.println("reached round " + String.valueOf(rd_num));
       }
     }
     statsRecorder.conclude();
@@ -175,7 +285,7 @@ public class Simulator {
     POWERK = parser.POWERK;
 
     for (int i = 0; i < NUM_RUN; ++i) {
-      System.out.println("run number: " + (i + 1));
+      // System.out.println("run number: " + (i + 1));
       run(parser, i + 1);
     }
   }  

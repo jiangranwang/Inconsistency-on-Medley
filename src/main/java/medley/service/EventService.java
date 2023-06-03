@@ -3,6 +3,8 @@ package medley.service;
 
 import com.google.common.cache.Cache;
 import com.sun.tools.javac.util.Pair;
+
+// import jdk.jshell.Snippet.Status;
 import medley.simulator.*;
 
 import java.util.*;
@@ -10,6 +12,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+
 import java.util.logging.Level;
 
 import static medley.simulator.Utils.transformMapToList;
@@ -77,6 +80,7 @@ public class EventService {
                                 .setSenderIncarnation(membershipTable.get(id).fst)
                                 .build();
     Id target_id = null;
+    System.out.println("memSize in join is "+String.valueOf(membershipTable.size()));
     for (Map.Entry<Id, Pair<Integer, Status>> entry : membershipTable.entrySet()){
       if (entry.getValue().snd == Status.ACTIVE){
         target_id = (Id)entry.getKey();
@@ -106,16 +110,26 @@ public class EventService {
   }
 
   public void executeNextEvent() throws Exception {
-    if (disabled)
-      return;
+    // needed to add this here, bc the new join command for churn traces is useful 
     Event event = this.pendingEvents.poll();
     if (event == null) {
       LOG.log(Level.WARNING, "Error processing event.");
       return;
+    } else if (event.eventType == EventType.JOIN) {
+      server.rejoin(event.eventTime);
+    } else if (event.eventType == EventType.CHURN_PROCESSED) {
+      // set flag to inform other simulator
+
+      Runtime.getRuntime().exec("touch "+event.data);
+      System.out.println("Created done flag");
+      System.exit(0);
     }
+    if (disabled)
+      return;
+    // Event event = this.pendingEvents.poll();
     LOG.log(Level.FINER, "{0}: Node {1} is handling event {2} for target {2}",
         new Object[]{event.eventTime, id.getPort(), event.eventType, event.eventTarget});
-    if (event.message.getCreatorId() != null &&
+    if (event.message!=null && event.message.getCreatorId() != null &&
         !event.message.getCreatorId().equals(this.id) && event.eventTarget.equals(this.id)){
       server.statsRecorder.ttlMsgNum++;
       server.statsRecorder.incrementMsgNum(
@@ -139,7 +153,12 @@ public class EventService {
       server.handleINDACKCHECK(event);
     } else if (event.eventType == EventType.FAIL_CHECK) {
       server.handleFAILCHECK(event);
-    } else {
+    } else if (event.eventType == EventType.JOIN) {
+      ;      
+    } else if (event.eventType == EventType.LEAVE) {
+      server.shutdown(event.eventTime);
+    } 
+    else {
       // TODO
       LOG.log(Level.FINE, "Received XX type of msg");
     }
@@ -320,6 +339,7 @@ public class EventService {
 
     } else if (msg.getType() == Type.JOIN) {
       LOG.log(Level.INFO, "Server {0} joins the network. Updates its status to ACTIVE", msg.getCreatorId());
+      System.out.println("Server "+ String.valueOf(msg.getCreatorId()) + " joins the network. Updates its status to ACTIVE");
       // add to membershipTable
       membershipTable.put(msg.getCreatorId(), new Pair<>(msg.getSenderIncarnation(), Status.ACTIVE));
       LOG.log(Level.INFO, "Add JOIN into the change table for {0}", msg.getCreatorId());

@@ -18,7 +18,8 @@ public class EventServiceFactory {
   private final HashMap<Integer, EventService> eventServices;
   private final HashMap<Integer, Id> ids;
   private static EventServiceFactory singleton = null;
-  private int DELAY = 20;
+  private int DELAY = 50;
+  // private int DELAY = 20;
   private double RADIUS = 25;
   private int DELAY_ONE_HOP = 10;
   private double MSG_DROP_RATE = 0.0;
@@ -39,10 +40,14 @@ public class EventServiceFactory {
   }
 
   public List<long[]> init(String cpath, List<long[]> eventList, boolean optimize_route, String rpath) {
+    // System.out.println("init entered");
     topology.setOneHopRadius(RADIUS);
+    // System.out.println("one hop radius set");
     topology.set_locations(cpath, optimize_route, rpath);
+    // System.out.println("set_locations complete");
     List<long[]> newEventList = topology.generate_failure(eventList);
     routingTable = topology.getRoutingTable();
+    // System.out.println("Exiting init");
     return newEventList;
   }
 
@@ -179,6 +184,7 @@ public class EventServiceFactory {
     Random rand = new Random();
     EventService eventService = eventServices.get(next_hop);
     Event event = new Event(EventType.REGULAR_PING, getId(final_receiver), current_time + rand.nextInt(DELAY), msg);
+    // Event event = new Event(EventType.REGULAR_PING, getId(final_receiver), current_time + DELAY, msg);
     eventService.addEvent(event);
   }
 

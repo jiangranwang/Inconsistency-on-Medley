@@ -92,6 +92,9 @@ public class Server implements Comparable<Server> {
   public long next_event_time = 0;
   public Strategy strategy = Strategy.ACTIVE_FEEDBACK_BAG;
 
+  // For measuring smallest size of membership list
+  private int smallest_memsize = Integer.MAX_VALUE;
+
   // For self unlucky check
   private double timePingAvg = Double.MAX_VALUE;
   private long timePingLast = -1;
@@ -104,21 +107,47 @@ public class Server implements Comparable<Server> {
     return strategy;
   }
 
+  public void addEvent(Event e) {
+    this.eventService.addEvent(e);
+  }
+
   @Override
   public int compareTo(Server in) {
     return Long.compare(this.next_event_time, in.next_event_time);
   }
 
   @SuppressWarnings("unchecked")
-  public void writeMembership(String path) {
+  public void writeMembership(String path, long iter, int num_server, int rd_num) {
     JSONObject obj = new JSONObject();
     JSONObject status = new JSONObject();
     JSONObject suspects = new JSONObject();
+    int temp_mem_size = membershipTable.size();
     for (Id id: membershipTable.keySet()) {
       String st = membershipTable.get(id).snd == Status.ACTIVE ? "active" : "suspect";
       status.put(id.getPort(), st);
     }
     obj.put("status", status);
+
+
+    smallest_memsize = Integer.min(smallest_memsize,temp_mem_size);
+    obj.put("smallest_memsize",smallest_memsize);
+    obj.put("current_memsize",temp_mem_size);
+
+    try {
+      FileWriter mFile = new FileWriter(path+"memlist.csv",true);
+      mFile.write(id.getPort()+","+String.valueOf(iter)+","+String.valueOf(smallest_memsize)+","+String.valueOf(temp_mem_size)+"\n");
+      mFile.flush();
+      mFile.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    if ((temp_mem_size <= num_server/2) && (rd_num > 10)) {
+      // System.out.println("Failed at round "+String.valueOf(rd_num)+" with size " + String.valueOf(temp_mem_size));
+      // System.exit(rd_num);
+    }
+
+    
+
     for (Id id: suspectCounts.keySet()) {
       suspects.put(id.getPort(), suspectCounts.get(id).toString());
     }
@@ -136,6 +165,7 @@ public class Server implements Comparable<Server> {
         file.close();
         success = true;
       } catch (IOException e) {
+        // System.out.println("Some issue when writing to file");
         e.printStackTrace();
       }
     }
